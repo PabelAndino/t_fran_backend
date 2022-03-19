@@ -31,8 +31,12 @@ router = routers.DefaultRouter()
 router.register("finca", views.FincaViewSet, basename='Finca')
 router.register("bultos", views.BultoViewSet, basename='Bultos')
 router.register("areas", AreaView, basename='Area')
+router.register("clase", views.ClaseViewSet, basename='Clase')
+router.register("corte", views.CorteViewSet, basename='Corte')
+router.register("variedad", views.VariedadViewSet, basename='Variedad')
+router.register("pilones", views.PilonViewSet, basename='Pilon')
 #router.register("areas/disabled/<str:pk>/", AreaView.as_view({'get':'disable_area'}), basename='AreaDisable')
-router.register("disable_finca", views.DisableFincaViewSet, basename='disable')
+
 
 
 urlpatterns = [

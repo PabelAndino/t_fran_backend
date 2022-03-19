@@ -2,7 +2,19 @@ from django.db import models
 
 
 class Pilon(models.Model):
-    numero = models.IntegerField(null=False)
+    nombre = models.IntegerField(null=False)
+    estado = models.BooleanField(default=True)
+
+
+class Corte(models.Model):
+    nombre = models.CharField(max_length=128, null=False, blank=False)
+    estado = models.BooleanField(default=True)
+
+
+class Clase(models.Model):
+    nombre = models.CharField(max_length=128, null=False, blank=False)
+    estado = models.BooleanField(default=True)
+
 
 class Finca(models.Model):
     nombre = models.CharField(max_length=300, null=False)
@@ -22,7 +34,12 @@ class ControlBultos(models.Model):
 class ControlBultosDetalle(models.Model):
     pilon = models.IntegerField()
     libras = models.DecimalField(max_digits=5, decimal_places=2)
-    clase = models.CharField(max_length=100)
-    corte = models.CharField(max_length=100)
+    clase = models.ForeignKey(Clase, on_delete=models.DO_NOTHING)
+    corte = models.ForeignKey(Corte, on_delete=models.DO_NOTHING)
     bulto = models.ForeignKey(ControlBultos, on_delete=models.DO_NOTHING)
     # Control de pilones
+
+
+class Variedad(models.Model):
+    nombre = models.CharField(max_length=128, null=False, blank=False)
+    estado = models.BooleanField(default=True)

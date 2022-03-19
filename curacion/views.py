@@ -8,8 +8,9 @@ from rest_framework.generics import get_object_or_404
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from .serializers import FincaSerializer, FincaPatchSerializer, FincaDisableSerializer, BultoSerializer, \
-    DisableBultoSerializer, BultoDetallesSerializer
-from .models import Finca, ControlBultos, ControlBultosDetalle
+    DisableBultoSerializer, BultoDetallesSerializer, PilonSerializer, PilonDisableSerializer, ClaseSerializer, \
+    DisableClaseSerializer, CorteSerializer, DisableCorteSerializer, VariedadSerializer, DisableVariedadSerializer
+from .models import Finca, ControlBultos, ControlBultosDetalle, Pilon, Clase, Corte, Variedad
 
 
 class FincaViewSet(viewsets.ViewSet):
@@ -36,15 +37,15 @@ class FincaViewSet(viewsets.ViewSet):
 
         return Response(response_dic)
 
-    @swagger_auto_schema(request_body=FincaSerializer)
-    def partial_update(self, request, pk=None):
+    @swagger_auto_schema(request_body=FincaDisableSerializer)
+    @action(detail=False, methods=['patch'], url_path=r'disable/(?P<pk>\w+)', name='Disable Finca')
+    def disable_finca(self, request, pk=None):
         try:
             query_set = Finca.objects.all()
-
             finca = get_object_or_404(query_set, pk=pk)
-            serializer = FincaPatchSerializer(finca, data=request.data, context={'request': request}, required=False)
+            serializer = FincaDisableSerializer(finca, data=request.data, context={'request': request}, required=False)
 
-            serializer.is_valid()
+            serializer.is_valid(raise_exception=True)
             serializer.save()
             dict_response = {
                 'error': False,
@@ -78,52 +79,6 @@ class FincaViewSet(viewsets.ViewSet):
 
         return Response(dict_response)
 
-    def newfunc(self, request, pk=None):
-        try:
-            query_set = Finca.objects.all()
-            finca = get_object_or_404(query_set, pk=pk)
-            serializer = FincaSerializer(finca, data=request.data, context={'request': request})
-            serializer.is_valid()
-            serializer.save()
-            dict_response = {
-                'error': False,
-                'message': 'Finca actualizada correctamente'
-            }
-        except:
-            dict_response = {
-                'error': True,
-                'error': serializer.errors
-            }
-
-        return Response(dict_response)
-
-
-finca_partial_update = FincaViewSet.as_view({"patch": "update"})
-finca_update = FincaViewSet.as_view({"put": "update"})
-
-
-class DisableFincaViewSet(viewsets.ViewSet):
-    @swagger_auto_schema(request_body=FincaSerializer)
-    def partial_update(self, request, pk=None):
-        try:
-            query_set = Finca.objects.all()
-
-            finca = get_object_or_404(query_set, pk=pk)
-            serializer = FincaDisableSerializer(finca, data=request.data, context={'request': request}, required=False)
-
-            serializer.is_valid()
-            serializer.save()
-            dict_response = {
-                'error': False,
-                'message': 'Finca actualizada correctamente'
-            }
-        except:
-            dict_response = {
-                'error': True,
-                'error': serializer.errors
-            }
-
-        return Response(dict_response)
 
 
 class BultoViewSet(viewsets.ViewSet):
@@ -193,74 +148,256 @@ class BultoViewSet(viewsets.ViewSet):
         return Response(response)
 
 
-def list(self, request):
-    area = ControlBultos.objects.filter(estado=True)
-    # area = Area.objects.all()
-    serializer = BultoSerializer(area, many=True, context={'request': request})
-    response_dic = {
-        'error': False,
-        'message': 'Todas los Bultos',
-        'data': serializer.data
-    }
-    return Response(response_dic)
+class PilonViewSet(viewsets.ViewSet):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(request_body=PilonSerializer)
+    def create(self, request):
+        serializer = PilonSerializer(data=request.data, context={'request': request})
+        try:
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = {'Error': False, 'detail': 'Pilon Guardado Correctamente'}
+
+        except IntegrityError as e:
+            response = {'Error': True, 'detail': serializer.errors}
+
+        return Response(response)
+
+    def list(self, request):
+        pilones = Pilon.objects.filter(estado=True)
+        serializer = PilonSerializer(pilones, many=True, context={'request': request})
+        response = {
+            'Error': False,
+            'message': 'Todos los pilones',
+            'data': serializer.data
+        }
+
+        return Response(response)
+
+    @swagger_auto_schema(request_body=PilonDisableSerializer)
+    @action(detail=False, methods=['patch'], url_path=r'disable/(?P<pk>\w+)', url_name="Disable Pilon",
+            name="Disable an Pilon")
+    def disable_pilon(self, request, pk=None):
+        try:
+            queryset = Pilon.objects.all()
+            pilon = get_object_or_404(queryset, pk=pk)
+            serializer = PilonDisableSerializer(pilon, data=request.data, context={'request': request}, required=False)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = {'Error': False, 'message': 'Pilon deshabilitado correctamente'}
+
+        except:
+            response = {'Error': True, 'message': serializer.errors}
+
+        return Response(response)
+
+    @swagger_auto_schema(request_body=PilonSerializer)
+    def update(self, request, pk=None):
+        try:
+            queryset = Pilon.objects.all()
+            pilon = get_object_or_404(queryset, pk=pk)
+            serializer = PilonSerializer(pilon, data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = {'Error': False, 'message': 'Pilon Actualizado Correctamente'}
+
+        except:
+            response = {
+                'Error': True,
+                'message': serializer.errors
+            }
+
+        return Response(response)
 
 
-# En caso Si no pongo el detail=False no se muestra el id ni la url en swagger
+class ClaseViewSet(viewsets.ViewSet):
+    # authentication_classes = [JWTAuthentication]
+    # permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(request_body=ClaseSerializer)
+    def create(self, request):
+        serializer = ClaseSerializer(data=request.data, context={'request': request})
+        try:
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = {'Error': False, 'message': 'Clase Guardada Correctamente'}
+        except:
+            response = {'Error': True, 'message': serializer.errors}
+
+        return Response(response)
+
+    def list(self, request):
+        clases = Clase.objects.filter(estado=True)
+        serializer = ClaseSerializer(clases, many=True, context={'request': request})
+        response = {
+            'Error': False,
+            'message': 'Todos las Clases',
+            'data': serializer.data
+        }
+        return Response(response)
+
+    @swagger_auto_schema(request_body=DisableClaseSerializer)
+    @action(detail=False, methods=['patch'], url_path=r'disable/(?P<pk>\w+)', url_name='Disable Clase',
+            name='Disable Clase')
+    def disable_clase(self, request, pk=None):
+        try:
+            queryset = Clase.objects.all()
+            clases = get_object_or_404(queryset, pk=pk)
+            serializer = DisableClaseSerializer(clases, data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = {'Error': False, 'message': 'Guardado Correctamente'}
+        except:
+            response = {'Error': True, 'message': serializer.errors}
+
+        return Response(response)
+
+    @swagger_auto_schema(request_body=ClaseSerializer)
+    def update(self, request, pk=None):
+        try:
+            queryset = Clase.objects.all()
+            clases = get_object_or_404(queryset, pk=pk)
+            serializer = ClaseSerializer(clases, data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = {'Error': False, 'message': 'Clase Actualizada correctamente'}
+        except:
+            response = {'Error': True, 'message': serializer.errors}
+
+        return Response(response)
+
+
+class CorteViewSet(viewsets.ViewSet):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(request_body=CorteSerializer)
+    def create(self, request):
+        serializer = CorteSerializer(data=request, context={'request': request})
+        try:
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = {
+                'Error': False,
+                'Message': 'Corte guardado correctamente'
+            }
+
+        except:
+            response = {
+                'Error': True,
+                'message': serializer.errors
+            }
+
+        return Response(response)
+
+    def list(self, request):
+        cortes = Corte.objects.filter(estado=True)
+        serializer = CorteSerializer(cortes, many=True, context={'request': request})
+        response = {
+            'Error': False,
+            'message': 'Lista de cortes',
+            'data': serializer.data
+        }
+
+        return Response(response)
+
+    @swagger_auto_schema(request_body=DisableCorteSerializer)
+    @action(detail=False, methods=['patch'], url_path=r'disable/(?P<pk>\w+)', name='Disable Corte')
+    def disable_corte(self, request, pk=None):
+        try:
+            queryset = Corte.objects.all()
+            cortes = get_object_or_404(queryset, pk=pk)
+            serializer = DisableCorteSerializer(cortes, data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = {'Error': False, 'message': 'Corte desactivado correctamente'}
+
+        except:
+            response = {'Error': True, 'message': serializer.errors}
+
+        return Response(response)
+
+    @swagger_auto_schema(request_body=CorteSerializer)
+    def update(self, request, pk=None):
+        try:
+            queryset = Corte.objects.all()
+            cortes = get_object_or_404(queryset, pk=pk)
+            serializer = CorteSerializer(cortes, data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = {'Error': False, 'message': 'Corte Actualizado correctamente'}
+        except:
+            response = {'Error': True, 'message': serializer.errors}
+
+        return Response(response)
+
+
+class VariedadViewSet(viewsets.ViewSet):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(request_body=VariedadSerializer)
+    def create(self, request):
+        serializer = VariedadSerializer(data=request.data, context={'request': request})
+        try:
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = {'Error': False, 'message': 'Variedad Creada correctamente'}
+
+        except:
+            response = {'Error': True, 'message': serializer.errors}
+
+        return Response(response)
+
+    def list(self, request):
+        variedades = Variedad.objects.filter(estado=True)
+        serializer = VariedadSerializer(variedades, many=True, context={'request': request})
+        response = {
+            'Error': False,
+            'message': 'Lista de Variedades',
+            'data': serializer.data
+        }
+
+        return Response(response)
+
+    @swagger_auto_schema(request_body=DisableVariedadSerializer)
+    @action(detail=False, methods=['patch'], url_path=r'disable/(?P<pk>\w+)', url_name='Disable Variedad', name='Disable Variedad')
+    def disable_variedad(self, request, pk=None):
+        try:
+            queryset = Variedad.objects.all()
+            variedades = get_object_or_404(queryset, pk=pk)
+            serializer = DisableVariedadSerializer(variedades, data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = {'Error': False, 'message': 'Variedad Guardad Correctamente'}
+
+        except:
+            response = {
+                'Error': True,
+                'message': serializer.errors
+            }
+
+        return Response(response)
+
+    @swagger_auto_schema(request_body=VariedadSerializer)
+    def update(self, request, pk=None):
+        try:
+            queryset = Variedad.objects.all()
+            variedades = get_object_or_404(queryset, pk=pk)
+            serializer = VariedadSerializer(variedades, data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = {'Error': False, 'message': 'Variedad guardad correctamente'}
+        except:
+            response = {'Error': True, 'message': serializer.errors}
+
+        return Response(response)
+    # En caso Si no pongo el detail=False no se muestra el id ni la url en swagger
 # En este caso para evitar eso,  si se deja en detail=True la url la muestra area/{id}/disabled que
 # esta al reves y debe de ser /areas/disabled/{id}, entonces se pone en detail=False y se le pasa el parametro
 # url_path que sobreescribira la url por una nueva como se puede probar en el swagger
-@swagger_auto_schema(request_body=DisableBultoSerializer)
-@action(detail=False, methods=['patch'], url_path=r'disable/(?P<pk>\w+)', url_name="Disable Bulto",
-        name="Disable an DisableBulto")
-def disable_bulto(self, request, pk=None):
-    try:
-        query_set = ControlBultos.objects.all()
-        area = get_object_or_404(query_set, pk=pk)
-        serializer = DisableBultoSerializer(area, data=request.data, context={'request': request}, required=False)
-        serializer.is_valid()
-        serializer.save()
-        dic_response = {
-            'error': False,
-            'message': 'Area deshabilitada correctamente'
-        }
-    except:
-        dic_response = {
-            'error': True,
-            'message': serializer.errors
-        }
-    return Response(dic_response)
 
-
-@swagger_auto_schema(request_body=BultoSerializer)
-def update(self, request, pk=None):
-    # query_set = Area.objects.all()
-    # area = get_object_or_404(query_set, pk=pk)
-    # serializer = AreaSerializer(area, data=request.data, context={'request': request})
-    # if serializer.is_valid():
-    #     serializer.save()
-    #     response = {
-    #         'error': False,
-    #         'message': 'Actualizado Correctamente'
-    #     }
-    # else:
-    #
-    #     response = {
-    #         'error': True,
-    #         'message': serializer.errors
-    #     }
-    try:
-        query_set = ControlBultos.objects.all()
-        area = get_object_or_404(query_set, pk=pk)
-        serializer = BultoSerializer(area, data=request.data, context={'request': request})
-        serializer.is_valid()
-        serializer.save()
-        response = {
-            'error': False,
-            'message': 'Area deshabilitada correctamente'
-        }
-    except:
-        response = {
-            'error': True,
-            'message': serializer.errors
-        }
-    return Response(response)
+# @swagger_auto_schema(request_body=DisableBultoSerializer)
+# @action(detail=False, methods=['patch'], url_path=r'disable/(?P<pk>\w+)', url_name="Disable Bulto",
+#        name="Disable an DisableBulto")
