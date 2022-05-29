@@ -35,6 +35,8 @@ router.register("clase", views.ClaseViewSet, basename='Clase')
 router.register("corte", views.CorteViewSet, basename='Corte')
 router.register("variedad", views.VariedadViewSet, basename='Variedad')
 router.register("pilones", views.PilonViewSet, basename='Pilon')
+router.register("bulto_detalles", views.BultoDetallesViewSet, basename='Bulto Detalles')
+router.register("bulto_temperatura", views.TemperaturaBultoViewSet, basename='Bulto Detalles Temperatura')
 #router.register("areas/disabled/<str:pk>/", AreaView.as_view({'get':'disable_area'}), basename='AreaDisable')
 
 

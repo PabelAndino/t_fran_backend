@@ -9,8 +9,9 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from .serializers import FincaSerializer, FincaPatchSerializer, FincaDisableSerializer, BultoSerializer, \
     DisableBultoSerializer, BultoDetallesSerializer, PilonSerializer, PilonDisableSerializer, ClaseSerializer, \
-    DisableClaseSerializer, CorteSerializer, DisableCorteSerializer, VariedadSerializer, DisableVariedadSerializer
-from .models import Finca, ControlBultos, ControlBultosDetalle, Pilon, Clase, Corte, Variedad
+    DisableClaseSerializer, CorteSerializer, DisableCorteSerializer, VariedadSerializer, \
+    BultoDetallesDeleteSerializer, DisableVariedadSerializer, TemperaturaBultoSerializer, DisableTemperaturaSerializer
+from .models import Finca, ControlBultos, ControlBultosDetalle, Pilon, Clase, Corte, Variedad, ControlTemperaturaBultos
 
 
 class FincaViewSet(viewsets.ViewSet):
@@ -80,7 +81,6 @@ class FincaViewSet(viewsets.ViewSet):
         return Response(dict_response)
 
 
-
 class BultoViewSet(viewsets.ViewSet):
     # authentication_classes = [JWTAuthentication]
     # permission_classes = [IsAuthenticated]
@@ -98,6 +98,7 @@ class BultoViewSet(viewsets.ViewSet):
                 bulto_detalles['bulto'] = bulto_id
                 control_bulto_detalle_list.append(bulto_detalles)
 
+            # print(control_bulto_detalle_list)
             serializerBultoDetail = BultoDetallesSerializer(data=control_bulto_detalle_list, many=True,
                                                             context={'request': request})
             serializerBultoDetail.is_valid()
@@ -128,10 +129,11 @@ class BultoViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['patch'], url_path=r'disable/(?P<pk>\w+)', url_name="Disable Bulto",
             name="Disable Bulto")
     def disable_bulto(self, request, pk=None):
+        query_set = ControlBultos.objects.all()
+        bulto = get_object_or_404(query_set, pk=pk)
+        serializer = DisableBultoSerializer(bulto, data=request.data, context={'request': request}, required=False)
         try:
-            query_set = ControlBultos.objects.all()
-            bulto = get_object_or_404(query_set, pk=pk)
-            serializer = DisableBultoSerializer(bulto, data=request.data, context={'request': request}, required=False)
+
             serializer.is_valid()
             serializer.save()
             response = {
@@ -146,6 +148,56 @@ class BultoViewSet(viewsets.ViewSet):
             }
 
         return Response(response)
+
+
+class BultoDetallesViewSet(viewsets.ViewSet):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(request_body=BultoDetallesSerializer)
+    def create(self, request):
+        control_bulto_detalle_list = []
+
+        try:
+            for bulto_detalles in request.data['detalles_bulto']:
+                control_bulto_detalle_list.append(bulto_detalles)
+
+            serializerBultoDetail = BultoDetallesSerializer(data=control_bulto_detalle_list, many=True,
+                                                            context={'request': request})
+            serializerBultoDetail.is_valid(raise_exception=True)
+            serializerBultoDetail.save()
+            response = {
+                'Error': False,
+                'Message': 'Detalles guardado correctamente'
+            }
+        except:
+            response = {
+                'Error': True,
+                'Message': serializerBultoDetail.errors
+            }
+        return Response(response)
+
+    # @swagger_auto_schema(request_body=BultoDetallesDeleteSerializer)
+    # @action(detail=True, methods=['delete'], url_path=r'delete/(?P<pk>\w+)', name='Delete Bulto Detail')
+    def destroy(self, request, pk=None):
+        query_set = ControlBultosDetalle.objects.all()
+        detalles = get_object_or_404(query_set, pk=pk)
+
+        # serializer = BultoDetallesDeleteSerializer(detalles)
+        # serializer.is_valid()
+        try:
+            detalles.delete()
+            dict_response = {
+                'error': False,
+                'message': 'Detalle borrado correctamente'
+            }
+        except:
+            dict_response = {
+                'error': True,
+                'message': 'serializer.errors'
+            }
+
+        return Response(dict_response)
 
 
 class PilonViewSet(viewsets.ViewSet):
@@ -274,7 +326,7 @@ class CorteViewSet(viewsets.ViewSet):
 
     @swagger_auto_schema(request_body=CorteSerializer)
     def create(self, request):
-        serializer = CorteSerializer(data=request, context={'request': request})
+        serializer = CorteSerializer(data=request.data, context={'request': request})
         try:
             serializer.is_valid(raise_exception=True)
             serializer.save()
@@ -362,21 +414,18 @@ class VariedadViewSet(viewsets.ViewSet):
         return Response(response)
 
     @swagger_auto_schema(request_body=DisableVariedadSerializer)
-    @action(detail=False, methods=['patch'], url_path=r'disable/(?P<pk>\w+)', url_name='Disable Variedad', name='Disable Variedad')
+    @action(detail=False, methods=['patch'], url_path=r'disable/(?P<pk>\w+)', name='Disable Variedad')
     def disable_variedad(self, request, pk=None):
         try:
             queryset = Variedad.objects.all()
-            variedades = get_object_or_404(queryset, pk=pk)
-            serializer = DisableVariedadSerializer(variedades, data=request.data, context={'request': request})
+            variedad = get_object_or_404(queryset, pk=pk)
+            serializer = DisableVariedadSerializer(variedad, data=request.data, context={'request': request})
             serializer.is_valid(raise_exception=True)
             serializer.save()
-            response = {'Error': False, 'message': 'Variedad Guardad Correctamente'}
+            response = {'Error': False, 'message': 'Variedad desactivada correctamente'}
 
         except:
-            response = {
-                'Error': True,
-                'message': serializer.errors
-            }
+            response = {'Error': True, 'message': serializer.errors}
 
         return Response(response)
 
@@ -389,6 +438,65 @@ class VariedadViewSet(viewsets.ViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
             response = {'Error': False, 'message': 'Variedad guardad correctamente'}
+        except:
+            response = {'Error': True, 'message': serializer.errors}
+
+        return Response(response)
+    # En caso Si no pongo el detail=False no se muestra el id ni la url en swagger
+    #
+class TemperaturaBultoViewSet(viewsets.ViewSet):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(request_body=TemperaturaBultoSerializer)
+    def create(self, request):
+        serializer = TemperaturaBultoSerializer(data=request.data, context={'request': request})
+        try:
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = {'Error': False, 'message': 'Control de temperatura guardado'}
+
+        except:
+            response = {'Error': True, 'message': serializer.errors}
+
+        return Response(response)
+
+    def list(self, request):
+        temperatura = ControlTemperaturaBultos.objects.filter(estado=True)
+        serializer = TemperaturaBultoSerializer(temperatura, many=True, context={'request': request})
+        response = {
+            'Error': False,
+            'message': 'Pilones con temperatura',
+            'data': serializer.data
+        }
+
+        return Response(response)
+
+    @swagger_auto_schema(request_body=DisableTemperaturaSerializer)
+    @action(detail=False, methods=['patch'], url_path=r'disable/(?P<pk>\w+)', name='Disable Temperatura')
+    def disable_control_temperatura_pilon(self, request, pk=None):
+        try:
+            queryset = ControlTemperaturaBultos.objects.all()
+            temperatura = get_object_or_404(queryset, pk=pk)
+            serializer = DisableTemperaturaSerializer(temperatura, data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = {'Error': False, 'message': 'Pilon Temperatura desactivado correctamente'}
+
+        except:
+            response = {'Error': True, 'message': serializer.errors}
+
+        return Response(response)
+
+    @swagger_auto_schema(request_body=DisableTemperaturaSerializer)
+    def update(self, request, pk=None):
+        try:
+            queryset = ControlTemperaturaBultos.objects.all()
+            temperatura = get_object_or_404(queryset, pk=pk)
+            serializer = VariedadSerializer(temperatura, data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = {'Error': False, 'message': 'Pilon Tempertaura actualizado correctamente'}
         except:
             response = {'Error': True, 'message': serializer.errors}
 
