@@ -52,5 +52,5 @@ class ControlTemperaturaBultos(models.Model):
     variedad = models.ForeignKey(Variedad, on_delete=models.DO_NOTHING)
     corte = models.ForeignKey(Corte, on_delete=models.DO_NOTHING)
     ciclo = models.IntegerField()
-    temperatura = models.DecimalField(max_digits=4, decimal_places=2)
+    temperatura = models.DecimalField(max_digits=6, decimal_places=2)
     estado = models.BooleanField(default=True)
